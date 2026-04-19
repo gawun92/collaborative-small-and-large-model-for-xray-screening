@@ -6,15 +6,8 @@ Run NanoDet-Plus inference on a single image and print detections to the termina
 
 ## Setup
 
-### 1. Clone NanoDet
 
-```bash
-git clone https://github.com/RangiLyu/nanodet.git
-```
-
-Place the cloned `nanodet/` folder in the same directory as the script.
-
-### 2. Place config file
+### 1. Place config file
 
 Copy your config YAML into `nanodet/config/`:
 
@@ -24,7 +17,7 @@ nanodet/
     └── ldxray_mainview_nanodet_plus_m_416_test.yml  ← place here
 ```
 
-### 3. Download model weights
+### 2. Download model weights
 
 Download `model_best.pth` from the link below and place it in the same directory as the script:
 
@@ -38,7 +31,7 @@ archive/
     └── ...
 ```
 
-### 4. Install dependencies
+### 3. Install dependencies
 
 ```bash
 pip install torch opencv-python numpy
