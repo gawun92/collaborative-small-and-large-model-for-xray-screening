@@ -1,35 +1,18 @@
-# ============================================================
-# YOLO Detection Visualizer
-# Picks a random image from test set, runs inference,
-# and displays bounding boxes + labels overlaid on the image
-# ============================================================
-
 import random
 import sys
 from pathlib import Path
 
-import cv2
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+# import cv2
 from ultralytics import YOLO
 
-# ============================================================
-# CONFIGURATION — UPDATE THESE
-# ============================================================
-
-MODEL_PATH   = 'checkpoints/yolov11l/best.pt'   # <-- path to your .pt file
-TEST_IMG_DIR = 'YOLO_dataset/images/test'        # <-- path to test images folder
-CONF_THRESH  = 0.25                              # <-- minimum confidence to show a box
-
-# ============================================================
+MODEL_PATH   = 'checkpoints/yolov11l/best.pt'
+TEST_IMG_DIR = 'YOLO_dataset/images/test'
+CONF_THRESH  = 0.25
 
 def run_detection(model_path: str, test_dir: str, conf: float):
-
-    # ── Load model ───────────────────────────────────────────
-    print(f"Loading model: {model_path}")
+    # print(f"Loading model: {model_path}")
     model = YOLO(model_path)
 
-    # ── Pick a random image ──────────────────────────────────
     image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
     test_path  = Path(test_dir)
 
@@ -46,59 +29,39 @@ def run_detection(model_path: str, test_dir: str, conf: float):
     chosen = random.choice(images)
     print(f"Selected image: {chosen.name}")
 
-    # ── Run inference ────────────────────────────────────────
+    # print(f"cv2.imread shape:      {cv2.imread(str(chosen)).shape}")
+
     results = model(str(chosen), conf=conf, verbose=False)
     result  = results[0]
 
-    # ── Use the image Ultralytics already processed ──────────
-    # result.orig_img is the original image with correct dimensions
-    # This ensures bounding box coordinates are correctly mapped
-    # back to the original image space rather than the 640x640 input space
-    img_rgb = cv2.cvtColor(result.orig_img, cv2.COLOR_BGR2RGB)
-    h, w    = img_rgb.shape[:2]
-    img_rgb = cv2.resize(img_rgb, (w//2, h))
+    # print(f"result.orig_img shape: {result.orig_img.shape}")
+    # print(f"Box xyxy coordinates:\n{result.boxes.xyxy}")
 
-    # ── Set up plot ──────────────────────────────────────────
-    fig, ax = plt.subplots(1, 1)
-    ax.imshow(img_rgb)
-    ax.axis('off')
-    ax.set_title(f"{chosen.name}  |  {len(result.boxes)} detection(s)  |  conf ≥ {conf}",
-                 fontsize=12, pad=10)
+    # img = result.orig_img.copy()
 
-    # Color palette — one color per class
-    palette = [
-        '#FF4444', '#FF8800', '#FFDD00', '#44FF44', '#00BBFF',
-        '#8844FF', '#FF44BB', '#00FFCC', '#FF6600', '#0044FF',
-        '#AAFF00', '#FF0088'
-    ]
+    # palette = [
+    #     (68, 68, 255), (0, 136, 255), (0, 221, 255), (68, 255, 68),
+    #     (255, 187, 0), (255, 68, 136), (187, 68, 255), (204, 255, 0),
+    #     (0, 102, 255), (255, 68, 0), (0, 255, 170), (136, 0, 255)
+    # ]
 
-    # ── Draw boxes ───────────────────────────────────────────
     if result.boxes is not None and len(result.boxes) > 0:
-        for box in result.boxes:
-            # Box coordinates (xyxy format, pixel space)
-            x1, y1, x2, y2 = box.xyxy[0].tolist()
-            cls_id          = int(box.cls[0].item())
-            conf_score      = float(box.conf[0].item())
-            label           = model.names[cls_id]
-            color           = palette[cls_id % len(palette)]
-
-            # Draw rectangle
-            rect = patches.Rectangle(
-                (x1, y1), x2 - x1, y2 - y1,
-                linewidth=2, edgecolor=color, facecolor='none'
-            )
-            ax.add_patch(rect)
-
-            # Draw label background + text
-            label_text = f"{label} {conf_score:.2f}"
-            ax.text(
-                x1, y1 - 6,
-                label_text,
-                fontsize=9,
-                color='white',
-                fontweight='bold',
-                bbox=dict(boxstyle='round,pad=0.3', facecolor=color, alpha=0.85, edgecolor='none')
-            )
+        # for box in result.boxes:
+        #     x1, y1, x2, y2 = [int(v) for v in box.xyxy[0].tolist()]
+        #     x1 *= 2
+        #     x2 *= 2
+        #     cls_id          = int(box.cls[0].item())
+        #     conf_score      = float(box.conf[0].item())
+        #     label           = model.names[cls_id]
+        #     color           = palette[cls_id % len(palette)]
+        #
+        #     cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+        #
+        #     label_text = f"{label} {conf_score:.2f}"
+        #     (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        #     cv2.rectangle(img, (x1, y1 - th - 8), (x1 + tw + 4, y1), color, -1)
+        #     cv2.putText(img, label_text, (x1 + 2, y1 - 4),
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
         print(f"\nDetections ({len(result.boxes)} total):")
         for box in result.boxes:
@@ -106,18 +69,42 @@ def run_detection(model_path: str, test_dir: str, conf: float):
             conf_score = float(box.conf[0].item())
             label      = model.names[cls_id]
             x1, y1, x2, y2 = box.xyxy[0].tolist()
+            x1 *= 2
+            x2 *= 2
             print(f"  {label:<30} conf={conf_score:.3f}  box=[{x1:.0f}, {y1:.0f}, {x2:.0f}, {y2:.0f}]")
     else:
         print("No detections above confidence threshold.")
-        ax.text(
-            w / 2, h / 2,
-            f"No detections (conf ≥ {conf})",
-            fontsize=14, color='white', ha='center', va='center',
-            bbox=dict(boxstyle='round,pad=0.5', facecolor='black', alpha=0.6)
-        )
 
-    plt.tight_layout()
-    plt.show()
+    # label_path = chosen.parent.parent.parent / 'labels' / chosen.parent.name / (chosen.stem + '.txt')
+    # h, w = result.orig_img.shape[:2]
+    # if label_path.exists():
+    #     print(f"\nGround-truth labels ({label_path.name}):")
+    #     with open(label_path) as f:
+    #         for line in f:
+    #             parts = line.strip().split()
+    #             if len(parts) != 5:
+    #                 continue
+    #             cls_id = int(parts[0])
+    #             xc, yc, bw, bh = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
+    #             x1 = (xc - bw / 2) * w * 2
+    #             y1 = (yc - bh / 2) * h
+    #             x2 = (xc + bw / 2) * w * 2
+    #             y2 = (yc + bh / 2) * h
+    #             lbl = model.names.get(cls_id, str(cls_id))
+    #             print(f"  {lbl:<30} box=[{x1:.0f}, {y1:.0f}, {x2:.0f}, {y2:.0f}]")
+    # else:
+    #     print(f"\nNo label file found at {label_path}")
+
+    # window_title = f"{chosen.name}  |  {len(result.boxes) if result.boxes else 0} detection(s)  |  conf >= {conf}"
+    #
+    # def on_click(event, x, y, *_):
+    #     if event == cv2.EVENT_LBUTTONDOWN:
+    #         print(f"Clicked: x={x}, y={y}")
+    #
+    # cv2.imshow(window_title, img)
+    # cv2.setMouseCallback(window_title, on_click)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
