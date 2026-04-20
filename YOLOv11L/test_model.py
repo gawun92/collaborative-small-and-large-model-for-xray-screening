@@ -63,6 +63,7 @@ def run_detection(model_path: str, test_dir: str, conf: float):
         #     cv2.putText(img, label_text, (x1 + 2, y1 - 4),
         #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
+        results = []
         print(f"\nDetections ({len(result.boxes)} total):")
         for box in result.boxes:
             cls_id     = int(box.cls[0].item())
@@ -72,8 +73,11 @@ def run_detection(model_path: str, test_dir: str, conf: float):
             x1 *= 2
             x2 *= 2
             print(f"  {label:<30} conf={conf_score:.3f}  box=[{x1:.0f}, {y1:.0f}, {x2:.0f}, {y2:.0f}]")
+            results.append({"bbox":[x1, y1, x2, y2], "confidence":conf_score, "predicted_class":cls_id})
+        return results
     else:
         print("No detections above confidence threshold.")
+        return []
 
     # label_path = chosen.parent.parent.parent / 'labels' / chosen.parent.name / (chosen.stem + '.txt')
     # h, w = result.orig_img.shape[:2]
