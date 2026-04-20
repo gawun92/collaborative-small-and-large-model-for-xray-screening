@@ -21,7 +21,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_model(config_path, model_path):
+def load_model(config_path, model_path="./model_best.pth"):
     from nanodet.util import cfg, load_config
     from nanodet.model.arch import build_model
     from nanodet.util import load_model_weight
@@ -57,17 +57,10 @@ def run_inference(model, cfg, image_path):
     with torch.no_grad():
         meta["img"] = tensor
         results = model.inference(meta)
-    
-    print("results type:", type(results))
-    print("results keys:", list(results.keys()) if isinstance(results, dict) else "not dict")
-    print("results[0] type:", type(results[0]))
-    print("results[0] keys:", list(results[0].keys()) if isinstance(results[0], dict) else results[0])
 
     detections = []
     # results is typically {class_id: [[x1, y1, x2, y2, score], ...], ...}
     for class_id, bboxes in results[0].items():
-        if len(bboxes) > 0:
-            print(f"class {class_id}: count={len(bboxes)}, sample={bboxes[0]}")
         for bbox in bboxes:
             x1, y1, x2, y2, score = bbox
             detections.append({
