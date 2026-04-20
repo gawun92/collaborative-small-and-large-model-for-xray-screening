@@ -19,18 +19,14 @@ def run_detection(model_path: str = './best.pt', image_path: str = None, conf: f
 
     if result.boxes is not None and len(result.boxes) > 0:
         results = []
-        print(f"\nDetections ({len(result.boxes)} total):")
         for box in result.boxes:
             cls_id     = int(box.cls[0].item())
             conf_score = float(box.conf[0].item())
-            label      = model.names[cls_id]
             x1, y1, x2, y2 = box.xyxy[0].tolist()
             x1 *= 2
             x2 *= 2
-            print(f"  {label:<30} conf={conf_score:.3f}  box=[{x1:.0f}, {y1:.0f}, {x2:.0f}, {y2:.0f}]")
             results.append({"bbox":[x1, y1, x2, y2], "confidence":conf_score, "predicted_class":cls_id})
         return results
     else:
-        print("No detections above confidence threshold.")
         return []
 
