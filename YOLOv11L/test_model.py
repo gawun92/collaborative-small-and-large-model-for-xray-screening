@@ -25,7 +25,7 @@ def run_detection(model_path: str = './best.pt', image_path: str = None, conf: f
             x1, y1, x2, y2 = box.xyxy[0].tolist()
             x1 *= 2
             x2 *= 2
-            results.append({"bbox":[x1, y1, x2, y2], "confidence":conf_score, "predicted_class":cls_id})
+            results.append({"bbox":[x1, y1, x2, y2], "confidence":conf_score, "predicted_class":cls_id + 1})
         return results
     else:
         return []
