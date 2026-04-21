@@ -9,9 +9,8 @@ AP50 calculation:
 """
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict
 
-from dummy_models import Prediction
 
 @dataclass
 class EvalResult:
@@ -45,24 +44,30 @@ def compute_iou(box1: List[float], box2: List[float]) -> float:
 
 # Per-image AP50
 def compute_image_ap50(
-        pred: Prediction,
+        pred: List[Dict],
         gt_list: List[dict],
         iou_threshold: float = 0.5,
 ) -> float:
-    if not gt_list or not pred.boxes:
+    """
+    pred   : [{"bbox": [x1,y1,x2,y2], "confidence": float, "predicted_class": int}, ...]
+    gt_list: [{"category_id": int, "bbox": [x,y,w,h]}, ...]
+    """
+    if not gt_list or not pred:
         return 0.0
 
     n_gt = len(gt_list)
 
-    sorted_idx = sorted(range(len(pred.scores)), key=lambda i: pred.scores[i], reverse=True)
+    # Sort predictions by confidence descending
+    sorted_pred = sorted(pred, key=lambda p: p["confidence"], reverse=True)
 
     matched_gt = set()
     tp, fp = 0, 0
     precisions, recalls = [], []
 
-    for idx in sorted_idx:
-        pred_box = pred.boxes[idx]
-        pred_label = pred.labels[idx]
+    for p in sorted_pred:
+        x1, y1, x2, y2 = p["bbox"]
+        pred_box = [x1, y1, x2 - x1, y2 - y1]  # convert xyxy -> xywh for compute_iou
+        pred_label = p["predicted_class"]
 
         best_iou = 0.0
         best_gt_idx = -1

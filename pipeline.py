@@ -15,10 +15,14 @@ from typing import List
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import yaml
+from tqdm import tqdm
 
-from data_loader import load_gt, get_images
+from data_loader import load_gt
 from evaluator import EvalResult, compute_image_ap50, print_confidence_histogram
-from dummy_models import run_small_model, run_large_model
+from models import run_small_model, run_large_model
+from routing import ROUTING_METHODS
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 
 
 # Config
@@ -32,18 +36,20 @@ def load_config(path: str) -> dict:
 
 
 # Pipeline 1 : Small model only
-def run_small_only(images, gt_dict, config) -> EvalResult:
+def run_small_only(images: List[str], gt_dict, config) -> EvalResult:
     iou_threshold = config["evaluation"]["iou_threshold"]
+    routing_fn = ROUTING_METHODS[config["pipeline"]["routing_method"]]
+    image_dir = config["data"]["image_dir"]
     ap50_list = []
     confidence_scores = []
     start = time.time()
 
-    for img in images:
-        file_name = img["file_name"]
-        pred = run_small_model(file_name, img["id"])
+    for file_name in tqdm(images, desc="Small Only"):
+        image_path = os.path.join(image_dir, file_name)
+        pred = run_small_model(image_path)
         gt = gt_dict.get(file_name, [])
         ap50_list.append(compute_image_ap50(pred, gt, iou_threshold))
-        confidence_scores.append(pred.model_confidence)
+        confidence_scores.append(routing_fn(pred))
 
     return EvalResult(
         pipeline_name="Small Only",
@@ -55,18 +61,20 @@ def run_small_only(images, gt_dict, config) -> EvalResult:
 
 
 # Pipeline 2 : Large model only
-def run_large_only(images, gt_dict, config) -> EvalResult:
+def run_large_only(images: List[str], gt_dict, config) -> EvalResult:
     iou_threshold = config["evaluation"]["iou_threshold"]
+    routing_fn = ROUTING_METHODS[config["pipeline"]["routing_method"]]
+    image_dir = config["data"]["image_dir"]
     ap50_list = []
     confidence_scores = []
     start = time.time()
 
-    for img in images:
-        file_name = img["file_name"]
-        pred = run_large_model(file_name, img["id"])
+    for file_name in tqdm(images, desc="Large Only"):
+        image_path = os.path.join(image_dir, file_name)
+        pred = run_large_model(image_path)
         gt = gt_dict.get(file_name, [])
         ap50_list.append(compute_image_ap50(pred, gt, iou_threshold))
-        confidence_scores.append(pred.model_confidence)
+        confidence_scores.append(routing_fn(pred))
 
     return EvalResult(
         pipeline_name="Large Only",
@@ -78,24 +86,27 @@ def run_large_only(images, gt_dict, config) -> EvalResult:
 
 
 # Pipeline 3 : Collaborative (small => large if confidence < threshold)
-def run_collaborative(images, gt_dict, config) -> EvalResult:
+def run_collaborative(images: List[str], gt_dict, config) -> EvalResult:
     threshold = config["pipeline"]["confidence_threshold"]
     iou_threshold = config["evaluation"]["iou_threshold"]
+    routing_fn = ROUTING_METHODS[config["pipeline"]["routing_method"]]
+    image_dir = config["data"]["image_dir"]
     ap50_list = []
     confidence_scores = []
     small_calls, large_calls = 0, 0
     start = time.time()
 
-    for img in images:
-        file_name = img["file_name"]
-        small_pred = run_small_model(file_name, img["id"])
+    for file_name in tqdm(images, desc="Collaborative"):
+        image_path = os.path.join(image_dir, file_name)
+        small_pred = run_small_model(image_path)
         small_calls += 1
-        confidence_scores.append(small_pred.model_confidence)
+        confidence = routing_fn(small_pred)
+        confidence_scores.append(confidence)
 
-        if small_pred.model_confidence >= threshold:
+        if confidence >= threshold:
             pred = small_pred
         else:
-            pred = run_large_model(file_name, img["id"])
+            pred = run_large_model(image_path)
             large_calls += 1
 
         gt = gt_dict.get(file_name, [])
@@ -126,7 +137,6 @@ def print_summary(results: List[EvalResult]) -> None:
         print(f"  Large calls : {r.large_model_calls}")
 
         if r.confidence_scores:
-            # Show escalation only for collaborative pipeline (both small and large are used)
             if r.small_model_calls > 0 and r.large_model_calls > 0:
                 total = r.small_model_calls
                 rate = r.large_model_calls / total * 100
@@ -142,7 +152,12 @@ def main(config_path: str = "config.yaml") -> None:
 
     print("Loading GT data...")
     gt_dict = load_gt(config["data"]["test_json"])
-    images = get_images()
+    image_dir = config["data"]["image_dir"]
+    images = sorted([
+        f for f in os.listdir(image_dir)
+        if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
+    ])
+    print(f"  images found in directory: {len(images)}")
 
     results = []
 

@@ -1,5 +1,6 @@
 pipeline:
   confidence_threshold: 0.5
+  routing_method: "max_score"   # max_score | mean_score | entropy | nms_box_count
 
 data:
   test_json: "./data/test.json"
@@ -7,9 +8,3 @@ data:
 
 evaluation:
   iou_threshold: 0.5 # AP50 - IoU
-
-small_model:
-  name: "small_model_dummy" # checkpoint: "small_model/weights/best.pth"
-
-large_model:
-  name: "large_model_dummy" # checkpoint: "large_model/weights/best.pth"

@@ -67,7 +67,7 @@ def run_inference(model, cfg, image_path):
                 "bbox": [round(float(x1), 2), round(float(y1), 2),
                          round(float(x2), 2), round(float(y2), 2)],
                 "confidence": round(float(score), 4),
-                "predicted_class": int(class_id),
+                "predicted_class": int(class_id) + 1,  # convert 0-indexed to 1-indexed (COCO GT)
             })
     return detections
 
