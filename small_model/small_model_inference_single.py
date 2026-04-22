@@ -34,7 +34,7 @@ def load_model(config_path, model_path="./model_best.pth"):
     return cfg, model
 
 
-def run_inference(model, cfg, image_path):
+def run_inference(model, cfg, image_path, conf: float = 0.3):
     """
     Run inference on a single image and return a list of detections.
     Return format: list of dict
@@ -63,6 +63,8 @@ def run_inference(model, cfg, image_path):
     for class_id, bboxes in results[0].items():
         for bbox in bboxes:
             x1, y1, x2, y2, score = bbox
+            if score < conf:
+                continue
             detections.append({
                 "bbox": [round(float(x1), 2), round(float(y1), 2),
                          round(float(x2), 2), round(float(y2), 2)],
