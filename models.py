@@ -69,4 +69,4 @@ def run_large_model(image_path: str) -> List[Dict]:
     Run YOLOv11L on a single image.
     Returns: [{"bbox": [x1,y1,x2,y2], "confidence": float, "predicted_class": int}, ...]
     """
-    return run_detection(model_path=LARGE_CKPT, image_path=image_path, conf=0.25)
+    return run_detection(model_path=LARGE_CKPT, image_path=image_path, conf=0.5)
