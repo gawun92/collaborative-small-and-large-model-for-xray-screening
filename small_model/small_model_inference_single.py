@@ -9,6 +9,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "nan
 
 from nanodet.data.transform import Pipeline
 
+_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+_pipeline = None
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="NanoDet-Plus single image inference script")
@@ -28,9 +31,10 @@ def load_model(config_path, model_path="./model_best.pth"):
 
     load_config(cfg, config_path)
     model = build_model(cfg.model)
-    ckpt = torch.load(model_path, map_location="cpu")
+    ckpt = torch.load(model_path, map_location=_device, weights_only=False)
     load_model_weight(model, ckpt, logger=None)
     model.eval()
+    model.to(_device)
     return cfg, model
 
 
@@ -40,7 +44,10 @@ def run_inference(model, cfg, image_path, conf: float = 0.3):
     Return format: list of dict
       [{"bbox": [x1, y1, x2, y2], "confidence": float, "predicted_class": int}, ...]
     """
-    pipeline = Pipeline(cfg.data.val.pipeline, cfg.data.val.keep_ratio)
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = Pipeline(cfg.data.val.pipeline, cfg.data.val.keep_ratio)
+    pipeline = _pipeline
     img = cv2.imread(image_path)
     meta = dict(
         img_info={"height": [img.shape[0]], "width": [img.shape[1]], "id": [0]},
@@ -52,7 +59,7 @@ def run_inference(model, cfg, image_path, conf: float = 0.3):
     if not isinstance(meta["warp_matrix"], list):
         meta["warp_matrix"] = [meta["warp_matrix"]]
 
-    tensor = torch.from_numpy(meta["img"].transpose(2, 0, 1)).unsqueeze(0).float()
+    tensor = torch.from_numpy(meta["img"].transpose(2, 0, 1)).unsqueeze(0).float().to(_device)
 
     with torch.no_grad():
         meta["img"] = tensor

@@ -8,6 +8,7 @@ Usage:
 
 import argparse
 import os
+import random
 import sys
 import time
 from typing import List
@@ -158,6 +159,15 @@ def main(config_path: str = "config.yaml") -> None:
         if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
     ])
     print(f"  images found in directory: {len(images)}")
+
+    seed = config["data"].get("seed", 42)
+    split_ratio = config["data"].get("split", 0.5)
+    random.seed(seed)
+    random.shuffle(images)
+    mid = int(len(images) * split_ratio)
+    images_a, images_b = images[:mid], images[mid:]
+    print(f"  split (seed={seed}): {len(images_a)} calibration / {len(images_b)} held-out")
+    images = images_a
 
     results = []
 

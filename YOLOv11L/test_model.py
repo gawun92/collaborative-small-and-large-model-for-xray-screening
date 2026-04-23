@@ -2,12 +2,12 @@ import sys
 from pathlib import Path
 from ultralytics import YOLO
 
-def run_detection(model_path: str = './best.pt', image_path: str = None, conf: float = 0.25):
+def run_detection(model_or_path = './best.pt', image_path: str = None, conf: float = 0.25):
     if image_path is None:
         print("ERROR: image_path is required.")
         sys.exit(1)
 
-    model  = YOLO(model_path)
+    model = model_or_path if isinstance(model_or_path, YOLO) else YOLO(model_or_path)
     chosen = Path(image_path)
 
     if not chosen.exists():

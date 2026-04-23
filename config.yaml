@@ -1,10 +1,12 @@
 pipeline:
   confidence_threshold: 0.5
-  routing_method: "max_score"   # max_score | mean_score | entropy | nms_box_count
+  routing_method: "mean_score"   # max_score | mean_score | entropy | nms_box_count
 
 data:
   test_json: "./data/test.json"
-  image_dir: "./data/images/"
+  image_dir: "./data/images/test/"
+  seed: 42
+  split: 0.5
 
 evaluation:
   iou_threshold: 0.5 # AP50 - IoU

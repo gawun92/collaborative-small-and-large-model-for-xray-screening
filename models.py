@@ -45,12 +45,20 @@ class Category(IntEnum):
 # Model singletons (loaded once, reused across calls)
 _small_model = None
 _small_cfg = None
+_large_model = None
 
 
 def _load_small_model():
     global _small_model, _small_cfg
     if _small_model is None:
         _small_cfg, _small_model = load_model(SMALL_CONFIG, SMALL_CKPT)
+
+
+def _load_large_model():
+    global _large_model
+    if _large_model is None:
+        from ultralytics import YOLO
+        _large_model = YOLO(LARGE_CKPT)
 
 
 # Small model inference (NanoDet-Plus)
@@ -69,4 +77,5 @@ def run_large_model(image_path: str) -> List[Dict]:
     Run YOLOv11L on a single image.
     Returns: [{"bbox": [x1,y1,x2,y2], "confidence": float, "predicted_class": int}, ...]
     """
-    return run_detection(model_path=LARGE_CKPT, image_path=image_path, conf=0.5)
+    _load_large_model()
+    return run_detection(_large_model, image_path=image_path, conf=0.5)
