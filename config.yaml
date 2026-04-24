@@ -1,6 +1,6 @@
 pipeline:
   confidence_threshold: 0.5
-  routing_method: "max_score"   # max_score | mean_score | entropy | nms_box_count
+  routing_method: "mean_score"   # max_score | mean_score | entropy | nms_box_count
 
 data:
   test_json: "./data/test.json"
